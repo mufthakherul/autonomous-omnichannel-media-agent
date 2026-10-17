@@ -1,0 +1,43 @@
+# Python Virtual Environments
+.venv/
+venv/
+env/
+ENV/
+
+# Python cache & build
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local Environment Variables & Secrets
+.env
+.env.local
+*.pem
+*.key
+client_secrets.json
+youtube_token.json
+
+# Local Runtime Data & Databases
+data/*.db
+data/*.db-journal
+data/*.db-wal
+data/*.db-shm
+data/incoming/*
+!data/incoming/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+data/generated/*
+!data/generated/.gitkeep
+data/thumbnails/*
+!data/thumbnails/.gitkeep
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.log

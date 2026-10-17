@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+.git/
+.env
+data/incoming/*.mp4
+data/processed/*.mp4
+data/generated/*.mp4
+data/generated/*.wav
+data/agent.db
+data/youtube_token.json
