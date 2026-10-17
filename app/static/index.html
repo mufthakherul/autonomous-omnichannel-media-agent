@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Autonomous Omnichannel & Generative AI Agent — Command Center</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-icon">▶</div>
+      <div>
+        <h1>Autonomous Omnichannel & Generative AI Agent</h1>
+        <p class="subtitle">Multi-Key Pool Rotator • Parallel Multi-Task Engine • AI News/Video/Image Studio • Omnichannel Publisher</p>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <span id="keyPoolBadge" class="badge badge-blue" title="Healthy Gemini API Keys in Multi-Account Pool">🔑 0 Keys Active</span>
+      <span id="modeBadge" class="badge badge-sim">Simulation Mode</span>
+      <button id="toggleLoopBtn" class="btn btn-secondary" onclick="toggleAutonomousLoop()">
+        ⏸ Auto-Loop: Paused
+      </button>
+      <button id="runCycleBtn" class="btn btn-primary" onclick="runSingleCycle()">
+        ⚡ Run Parallel Agent Cycle Now
+      </button>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- KPI Metrics Row -->
+    <section class="metrics-grid">
+      <div class="metric-card">
+        <span class="metric-label">Collected & Generated Videos</span>
+        <strong id="metricTotalVideos" class="metric-value">0</strong>
+        <span class="metric-sub">Mother Folders + AI Studio</span>
+      </div>
+      <div class="metric-card highlight-green">
+        <span class="metric-label">Ready As-Is / Remixed</span>
+        <strong id="metricReadyAsIs" class="metric-value">0 / 0</strong>
+        <span class="metric-sub">Passed AI Check & FFmpeg Remix</span>
+      </div>
+      <div class="metric-card highlight-amber">
+        <span class="metric-label">AI Studio (Videos / Images)</span>
+        <strong id="metricStudioCount" class="metric-value">0 / 0</strong>
+        <span class="metric-sub">Trending News & Event Creations</span>
+      </div>
+      <div class="metric-card highlight-blue">
+        <span class="metric-label">Published Omnichannel</span>
+        <strong id="metricPublished" class="metric-value">0</strong>
+        <span class="metric-sub">YT • FB • IG • TikTok</span>
+      </div>
+      <div class="metric-card highlight-purple">
+        <span class="metric-label">Key Pool & Smart Comments</span>
+        <strong id="metricComments" class="metric-value">0 Keys • 0 Replies</strong>
+        <span class="metric-sub">Auto-Failover & Selective Triage</span>
+      </div>
+    </section>
+
+    <!-- Navigation Tabs -->
+    <nav class="tabs">
+      <button class="tab-btn active" data-tab="videosTab" onclick="switchTab('videosTab')">
+        🎬 Video Pipeline & Inspector
+      </button>
+      <button class="tab-btn" data-tab="studioTab" onclick="switchTab('studioTab')">
+        🎨 AI News, Video & Image Studio
+      </button>
+      <button class="tab-btn" data-tab="keysTab" onclick="switchTab('keysTab')">
+        🔑 Multi-Key Pool & ⚡ Parallel Workers
+      </button>
+      <button class="tab-btn" data-tab="sourcesTab" onclick="switchTab('sourcesTab')">
+        📡 Mother Folders & Sources
+      </button>
+      <button class="tab-btn" data-tab="commentsTab" onclick="switchTab('commentsTab')">
+        💬 Smart Comment Responder
+      </button>
+      <button class="tab-btn" data-tab="logsTab" onclick="switchTab('logsTab')">
+        📋 Live Activity Log
+      </button>
+      <button class="tab-btn" data-tab="settingsTab" onclick="switchTab('settingsTab')">
+        ⚙️ Settings & Credentials
+      </button>
+    </nav>
+
+    <!-- TAB 1: Video Pipeline & Readiness Inspector -->
+    <section id="videosTab" class="tab-panel active">
+      <div class="toolbar">
+        <div class="toolbar-left">
+          <h2>Omnichannel Video Pipeline & Copyright-Safe Remix Queue</h2>
+          <p class="muted">Gemini 3.8 Flash + FFprobe inspects videos in parallel across your Multi-Key Pool, applies transformative Copyright-Safe Remixes, and publishes across YouTube, Facebook, Instagram & TikTok.</p>
+        </div>
+        <div class="toolbar-right">
+          <label class="btn btn-secondary file-upload-label">
+            📂 Upload Local Video
+            <input type="file" id="localVideoInput" accept="video/*" onchange="uploadLocalVideoFile(event)" hidden />
+          </label>
+          <button class="btn btn-secondary" onclick="generateSampleVideo('clean_landscape')">
+            + Test Video (1080p)
+          </button>
+          <button class="btn btn-secondary" onclick="generateSampleVideo('vertical_short')">
+            + Test Short (9:16)
+          </button>
+          <button class="btn btn-secondary" onclick="generateSampleVideo('needs_fix_silent')">
+            + Test Video (Needs Remix)
+          </button>
+        </div>
+      </div>
+
+      <div id="videosList" class="cards-stack"></div>
+    </section>
+
+    <!-- TAB 2: AI News, Video & Image Studio -->
+    <section id="studioTab" class="tab-panel">
+      <div class="split-layout">
+        <div class="panel-card">
+          <h3>🎨 Generate AI Video, Image Post & News Story</h3>
+          <p class="muted">Research real-time popular news, viral events, or custom topics with Google Search Grounding and generate original AI Videos (<code>gemini-omni-1.1-flash</code> + <code>gemini-3.8-flash-tts</code>) and AI Image Posts (<code>gemini-nano-banana-2.1</code>) in parallel.</p>
+
+          <form id="studioGenerateForm" onsubmit="submitStudioGeneration(event)">
+            <div class="form-group">
+              <label>Topic, Breaking News Headline, or Event</label>
+              <textarea id="studioTopic" rows="2" placeholder="e.g., Major AI breakthrough announced today, SpaceX starship orbital milestone, or 5 morning habits backed by neuroscience..." required></textarea>
+            </div>
+            <div class="form-group">
+              <label>Category / Niche</label>
+              <input type="text" id="studioNiche" value="Technology & AI, Breaking News" />
+            </div>
+            <div class="form-group">
+              <label>What should the Agent Generate?</label>
+              <select id="studioType">
+                <option value="both">⚡ Generate BOTH AI Video Short + AI Image Post in Parallel</option>
+                <option value="ai_video">🎬 Original AI Video + Voiceover (Omni 1.1 Flash + TTS -> Video Pipeline)</option>
+                <option value="ai_image_post">🖼️ AI Social Image Post + Viral Caption (Nano Banana 2.1)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Aspect Ratio</label>
+              <select id="studioAspectRatio">
+                <option value="9:16">📱 9:16 Vertical (Shorts, Reels, TikTok)</option>
+                <option value="16:9">🖥️ 16:9 Widescreen (YouTube Long-Form / Facebook)</option>
+                <option value="1:1">🟦 1:1 Square (Instagram / Facebook Feed Post)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Real-Time Google Search Grounding & Auto-Publish</label>
+              <select id="studioAutoPublish">
+                <option value="false">Save to Studio Gallery & Video Pipeline for Review</option>
+                <option value="true">🚀 Auto-Publish Immediately to YouTube, Facebook, Instagram & TikTok</option>
+              </select>
+            </div>
+            <button type="submit" id="studioGenBtn" class="btn btn-primary full-width">
+              ✨ Research & Generate AI Media Now
+            </button>
+          </form>
+
+          <div style="margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+            <h4 style="margin-bottom:0.35rem;">🌍 Live Trending News & Events Radar</h4>
+            <p class="muted" style="font-size:0.78rem; margin-bottom:0.5rem;">Pull live breaking stories from Google News RSS + Gemini Search Grounding, then 1-click turn any trend into a video or image post.</p>
+            <input type="text" id="trendQueryInput" value="Technology & AI, World News, Science & Space, Viral Events" placeholder="Niches to scan..." />
+            <button type="button" class="btn btn-secondary full-width" style="margin-top:0.5rem;" onclick="discoverTrendingTopicsNow()">
+              🔍 Discover Live Breaking News & Viral Trends
+            </button>
+          </div>
+        </div>
+
+        <div class="panel-card">
+          <div class="panel-header-inline">
+            <h3>Generated AI Videos, Image Posts & Discovered Trends</h3>
+            <div style="display:flex; gap:0.4rem;">
+              <button class="btn btn-secondary btn-sm" onclick="loadStudioCreations()">↻ Refresh Studio</button>
+            </div>
+          </div>
+          <div id="studioCreationsList" class="cards-stack"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: Multi-Key Pool & Parallel Workers -->
+    <section id="keysTab" class="tab-panel">
+      <div class="split-layout">
+        <div class="panel-card">
+          <h3>🔑 Multi-Account Gemini API Key Pool</h3>
+          <p class="muted">Paste API keys from your and your family members' Google Pro accounts (one per line, or <code>Label | AIzaSy...</code>). The agent automatically load-balances across all keys in parallel and fails over in 0ms if any key hits a <code>429</code> rate limit!</p>
+
+          <form onsubmit="submitBulkApiKeys(event)">
+            <div class="form-group">
+              <label>Key Provider</label>
+              <select id="keyProviderSelect">
+                <option value="gemini">Google Gemini API Key (Google Pro / AI Studio)</option>
+                <option value="pexels">Pexels API Key</option>
+                <option value="pixabay">Pixabay API Key</option>
+                <option value="other">Other External API Key</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Paste 1 or Multiple API Keys (One per line or <code>Account Label | AIzaSy...</code>)</label>
+              <textarea id="bulkApiKeysInput" rows="5" placeholder="My Google Pro | AIzaSy...&#10;Family Member 1 | AIzaSy...&#10;Family Member 2 | AIzaSy..." required></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary full-width">
+              ➕ Add Keys to Smart Rotation Pool
+            </button>
+          </form>
+
+          <div style="margin-top:1rem; padding-top:1rem; border-top:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
+            <span class="muted" style="font-size:0.8rem;">Cooldown keys auto-recover after 90s</span>
+            <button class="btn btn-secondary btn-sm" onclick="resetAllKeyCooldowns()">🔄 Reset All Cooldowns</button>
+          </div>
+        </div>
+
+        <div class="panel-card">
+          <div class="panel-header-inline">
+            <h3>Active Key Pool Telemetry & Health</h3>
+            <span class="muted" style="font-size:0.8rem;">Round-Robin + Least-Recently-Used</span>
+          </div>
+          <div id="apiKeysList" class="sources-list" style="margin-bottom:1.5rem;"></div>
+
+          <div class="panel-header-inline" style="padding-top:1rem; border-top:1px solid var(--border);">
+            <h3>⚡ Parallel Multi-Worker Execution Matrix</h3>
+            <button class="btn btn-secondary btn-sm" onclick="loadDashboardOverview()">↻ Refresh Workers</button>
+          </div>
+          <div id="parallelTasksList" class="sources-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: Video Sources -->
+    <section id="sourcesTab" class="tab-panel">
+      <div class="split-layout">
+        <div class="panel-card">
+          <h3>Add New Video Source</h3>
+          <p class="muted">Connect folders, cloud buckets, stock platforms, Telegram channels, or RSS feeds.</p>
+          <form id="addSourceForm" onsubmit="createNewSource(event)">
+            <div class="form-group">
+              <label>Source Name</label>
+              <input type="text" id="srcName" placeholder="e.g., Pexels Aerial Nature 4K" required />
+            </div>
+            <div class="form-group">
+              <label>Source Type</label>
+              <select id="srcType" onchange="updateSourcePlaceholder()">
+                <option value="local">Local Folder / Watch Directory</option>
+                <option value="gdrive">Google Drive Folder Path or File URL/ID</option>
+                <option value="s3">AWS S3 / Cloud Bucket (bucket/prefix)</option>
+                <option value="pexels">Pexels Stock Video Search Query</option>
+                <option value="pixabay">Pixabay Stock Video Search Query</option>
+                <option value="telegram">Telegram Channel / Chat ID (@channel)</option>
+                <option value="rss">RSS / Atom Media Feed URL</option>
+                <option value="url">Direct Video URL (.mp4)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label id="srcValueLabel">Folder Path / Query / URL</label>
+              <input type="text" id="srcValue" placeholder="e:\Documents\agent\data\incoming" required />
+            </div>
+            <div class="form-group">
+              <label>Max Videos Per Sync</label>
+              <input type="number" id="srcMaxItems" value="5" min="1" max="50" />
+            </div>
+            <button type="submit" class="btn btn-primary full-width">Add Single Video Source</button>
+          </form>
+
+          <div style="margin-top: 1.1rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+            <h4 style="margin-bottom:0.35rem;">⚡ Bulk Paste Mother Folders & Links</h4>
+            <p class="muted" style="font-size:0.78rem; margin-bottom:0.5rem;">Paste 1 to 100+ Google Drive folders, Telegram channels, or video links separated by spaces or newlines. The agent crawls all subfolders automatically!</p>
+            <textarea id="bulkLinksInput" rows="3" placeholder="https://drive.google.com/drive/folders/... https://drive.google.com/drive/folders/..."></textarea>
+            <button type="button" class="btn btn-primary full-width" style="margin-top:0.5rem;" onclick="submitBulkSources()">
+              ⚡ Bulk Add All Pasted Links
+            </button>
+          </div>
+
+          <div style="margin-top: 0.9rem; padding-top: 0.9rem; border-top: 1px solid var(--border);">
+            <label class="btn btn-secondary full-width file-upload-label" style="justify-content:center;">
+              📄 Import PDF Link Bundle (Auto-Extract Drive/Telegram Links)
+              <input type="file" accept=".pdf,application/pdf" onchange="uploadPdfBundle(event)" hidden />
+            </label>
+          </div>
+        </div>
+
+        <div class="panel-card">
+          <div class="panel-header-inline">
+            <h3>Configured Mother Folders & Sources</h3>
+            <button class="btn btn-secondary btn-sm" onclick="syncAllSources()">🔄 Sync All Active Sources</button>
+          </div>
+          <div id="sourcesList" class="sources-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 5: Smart Comment Responder -->
+    <section id="commentsTab" class="tab-panel">
+      <div class="toolbar">
+        <div class="toolbar-left">
+          <h2>Smart Comment Triage & Auto-Responder</h2>
+          <p class="muted">AI filters out spam, self-promotion, trolls, and generic emoji reactions — <strong>replying ONLY to comments that genuinely need a response</strong> (questions, timestamp requests, constructive feedback, and meaningful praise).</p>
+        </div>
+        <div class="toolbar-right">
+          <button class="btn btn-secondary" onclick="seedSampleComments()">
+            🧪 Load 5 Sample Viewer Comments
+          </button>
+          <button class="btn btn-primary" onclick="syncAndTriageComments()">
+            🔄 Fetch & Triage YouTube Comments
+          </button>
+        </div>
+      </div>
+
+      <div class="comment-simulator-bar panel-card">
+        <h4>Test AI Comment Triage with a Custom Viewer Comment</h4>
+        <form class="inline-form" onsubmit="submitCustomTestComment(event)">
+          <input type="text" id="testCommentAuthor" placeholder="@ViewerHandle" value="@CuriousViewer" style="max-width: 170px;" />
+          <input type="text" id="testCommentText" placeholder="Type any viewer comment (e.g. a question, spam link, or single emoji) to see if the AI replies or ignores it..." required />
+          <button type="submit" class="btn btn-primary">Evaluate Comment</button>
+        </form>
+      </div>
+
+      <div class="filter-pills">
+        <button class="pill active" onclick="filterComments('all', this)">All Evaluated Comments</button>
+        <button class="pill" onclick="filterComments('needs_reply', this)">✅ Needs Reply Only</button>
+        <button class="pill" onclick="filterComments('ignored', this)">🚫 Ignored / Filtered Out</button>
+      </div>
+
+      <div id="commentsList" class="cards-stack"></div>
+    </section>
+
+    <!-- TAB 6: Activity Logs -->
+    <section id="logsTab" class="tab-panel">
+      <div class="panel-card">
+        <div class="panel-header-inline">
+          <h3>Real-Time Agent Audit Log</h3>
+          <button class="btn btn-secondary btn-sm" onclick="refreshAll()">↻ Refresh</button>
+        </div>
+        <div id="activityLogsList" class="logs-container"></div>
+      </div>
+    </section>
+
+    <!-- TAB 7: Settings & Credentials -->
+    <section id="settingsTab" class="tab-panel">
+      <div class="panel-card">
+        <h3>Agent Configuration, Parallel Workers & Omnichannel Credentials</h3>
+        <p class="muted">Configure Gemini models, parallel worker concurrency, automated trending news generation, YouTube OAuth 2.0, and social platform tokens.</p>
+        <form id="settingsForm" onsubmit="saveSettings(event)" class="settings-grid">
+          <div class="form-group">
+            <label>Primary Gemini API Key (Or add multiple in 🔑 Multi-Key Pool tab)</label>
+            <input type="password" id="setGeminiKey" placeholder="AIzaSy..." />
+          </div>
+          <div class="form-group">
+            <label>Max Parallel Worker Threads (Concurrent Tasks)</label>
+            <input type="number" id="setMaxWorkers" min="1" max="16" value="4" />
+          </div>
+          <div class="form-group">
+            <label>Gemini Multimodal & Research Model</label>
+            <input type="text" id="setGeminiModel" value="gemini-3.8-flash" />
+          </div>
+          <div class="form-group">
+            <label>Gemini Image Model (<code>gemini-nano-banana-2.1</code>)</label>
+            <input type="text" id="setGeminiImageModel" value="gemini-nano-banana-2.1" />
+          </div>
+          <div class="form-group">
+            <label>Gemini Video Model (<code>gemini-omni-1.1-flash</code>)</label>
+            <input type="text" id="setGeminiVideoModel" value="gemini-omni-1.1-flash" />
+          </div>
+          <div class="form-group">
+            <label>Gemini Speech / Voiceover Model (<code>gemini-3.8-flash-tts</code>)</label>
+            <input type="text" id="setGeminiTtsModel" value="gemini-3.8-flash-tts" />
+          </div>
+          <div class="form-group">
+            <label>Auto-Generate Trending News Posts During Agent Cycles</label>
+            <select id="setAutoTrending">
+              <option value="true">Enabled — Automatically discover trends & generate AI news posts</option>
+              <option value="false">Disabled — Only generate when triggered in AI Studio</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Trending News Niches (Comma-Separated)</label>
+            <input type="text" id="setTrendingNiches" value="Technology & AI, World News, Science & Space, Viral Pop Culture" />
+          </div>
+          <div class="form-group">
+            <label>YouTube Mode</label>
+            <select id="setSimulationMode">
+              <option value="true">Simulation / Dry-Run Mode (Safe testing without live uploads)</option>
+              <option value="false">Live YouTube Data API v3 Mode (Uses client_secrets.json OAuth)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Pre-Check Initial Upload Privacy</label>
+            <select id="setPrecheckPrivacy">
+              <option value="private">Private (Verify Content ID before making Public)</option>
+              <option value="unlisted">Unlisted (Verify Content ID before making Public)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Auto-Remediate Videos That Fail "As-Is" Check (FFmpeg)</label>
+            <select id="setAutoRemediate">
+              <option value="true">Enabled — Auto-fix audio/aspect ratio/codec with FFmpeg</option>
+              <option value="false">Disabled — Only upload videos that pass 100% untouched</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Auto-Reply to Approved Comments</label>
+            <select id="setAutoReply">
+              <option value="false">Review Queue Mode — Approve replies in dashboard</option>
+              <option value="true">Autonomous Mode — Immediately post replies to qualifying comments</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Daily Upload Limit</label>
+            <input type="number" id="setDailyLimit" min="1" max="50" value="4" />
+          </div>
+          <div class="form-group">
+            <label>Upload Spacing (Hours Between Scheduled Videos)</label>
+            <input type="number" id="setSpacingHours" min="1" max="48" value="4" />
+          </div>
+          <div class="form-group">
+            <label>Pexels API Key (Optional)</label>
+            <input type="password" id="setPexelsKey" placeholder="Optional Pexels API Key" />
+          </div>
+          <div class="form-group">
+            <label>Pixabay API Key (Optional)</label>
+            <input type="password" id="setPixabayKey" placeholder="Optional Pixabay API Key" />
+          </div>
+          <div class="form-group">
+            <label>Telegram Bot Token (Optional)</label>
+            <input type="password" id="setTelegramToken" placeholder="Optional Telegram Bot Token" />
+          </div>
+          <div class="form-group">
+            <label>Background Loop Interval (Seconds)</label>
+            <input type="number" id="setLoopInterval" min="15" max="86400" value="300" />
+          </div>
+          <div class="form-group">
+            <label>Always Apply Copyright-Safe Remix (FFmpeg + Collected Assets)</label>
+            <select id="setAlwaysTransform">
+              <option value="true">Enabled (Recommended) — Transform every bundle video (zoom, color, 1.03x tempo, SFX, strip metadata)</option>
+              <option value="false">Only when Gemini flags an issue</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Facebook Page ID (Meta Graph API — For FB Page & Reels)</label>
+            <input type="text" id="setFbPageId" placeholder="Optional Facebook Page ID" />
+          </div>
+          <div class="form-group">
+            <label>Instagram Business Account ID (For IG Reels & Posts)</label>
+            <input type="text" id="setIgAccountId" placeholder="Optional Instagram Business User ID" />
+          </div>
+          <div class="form-group">
+            <label>Meta (Facebook + Instagram) Access Token</label>
+            <input type="password" id="setFbAccessToken" placeholder="Optional EAAB... Page/IG Access Token" />
+          </div>
+          <div class="form-group">
+            <label>TikTok Content Posting API Access Token</label>
+            <input type="password" id="setTiktokToken" placeholder="Optional TikTok OAuth Access Token" />
+          </div>
+          <div class="form-group">
+            <label>Omnichannel Webhook URL (Make.com / Zapier / n8n / X / LinkedIn)</label>
+            <input type="text" id="setWebhookUrl" placeholder="Optional https://hook.make.com/..." />
+          </div>
+          <div class="form-group full-span">
+            <label>Channel Persona & Tone for Comment Replies</label>
+            <textarea id="setChannelPersona" rows="2"></textarea>
+          </div>
+          <div class="form-actions full-span">
+            <button type="submit" class="btn btn-primary">💾 Save Configuration</button>
+            <button type="button" class="btn btn-secondary" onclick="authorizeYouTubeOAuth()">
+              🔑 Authorize Live YouTube OAuth (client_secrets.json)
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast hidden"></div>
+  <script src="/static/app.js"></script>
+</body>
+</html>
