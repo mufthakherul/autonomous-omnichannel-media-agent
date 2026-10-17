@@ -147,12 +147,13 @@ async def get_dashboard_overview():
         "ai_images_generated": conn.execute(
             "SELECT COUNT(*) as c FROM studio_creations WHERE creation_type = 'ai_image_post'"
         ).fetchone()["c"],
+        "sources_total": conn.execute("SELECT COUNT(*) as c FROM sources WHERE active = 1").fetchone()["c"],
         "duplicates_blocked": dedup_stats.get("duplicates_blocked_count", 0),
     }
 
     logs = [
         dict(r)
-        for r in conn.execute("SELECT * FROM activity_logs ORDER BY id DESC LIMIT 40").fetchall()
+        for r in conn.execute("SELECT * FROM activity_logs ORDER BY id DESC LIMIT 60").fetchall()
     ]
     conn.close()
 
@@ -509,6 +510,37 @@ async def publish_video_endpoint(video_id: int, schedule: bool = False):
 async def publish_video_omnichannel_endpoint(video_id: int, req: OmnichannelPublishRequest):
     result = await asyncio.to_thread(publish_video_omnichannel, video_id, req.platforms, req.schedule)
     return result
+
+
+@app.get("/api/videos/{video_id}/stream")
+async def stream_video_endpoint(video_id: int, variant: str = "best"):
+    video = get_video(video_id)
+    if not video:
+        raise HTTPException(status_code=404, detail="Video not found")
+    rem_path = video.get("remediated_path")
+    orig_path = video.get("local_path")
+    if variant == "original" and orig_path and Path(orig_path).exists():
+        target = Path(orig_path)
+    elif rem_path and Path(rem_path).exists():
+        target = Path(rem_path)
+    elif orig_path and Path(orig_path).exists():
+        target = Path(orig_path)
+    else:
+        raise HTTPException(status_code=404, detail="Video file not found on disk")
+    return FileResponse(str(target), media_type="video/mp4", filename=target.name)
+
+
+@app.delete("/api/videos/{video_id}")
+async def delete_video_endpoint(video_id: int):
+    video = get_video(video_id)
+    if not video:
+        raise HTTPException(status_code=404, detail="Video not found")
+    conn = get_connection()
+    conn.execute("DELETE FROM videos WHERE id = ?", (video_id,))
+    conn.commit()
+    conn.close()
+    log_activity("SYSTEM", f"Removed Video #{video_id} ('{video.get('original_filename')}') from active queue (SHA-256 retained in dedup guard).")
+    return {"deleted": True, "video_id": video_id}
 
 
 # --- Smart Comment Responder Endpoints ---
