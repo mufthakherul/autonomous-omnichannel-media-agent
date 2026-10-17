@@ -34,6 +34,8 @@ data/generated/*
 !data/generated/.gitkeep
 data/thumbnails/*
 !data/thumbnails/.gitkeep
+data/assets/*/*
+!data/assets/**/.gitkeep
 
 # IDE & OS
 .vscode/
