@@ -168,10 +168,59 @@ async function loadDashboardOverview() {
 
   renderApiKeysPool(data.api_keys || []);
   renderParallelTasks(data.parallel_tasks || []);
+  renderGdriveVaultTelemetry(data.gdrive_vault || {});
 
   allLogsCache = data.logs || [];
   renderFilteredLogs();
   renderOverviewLogs(allLogsCache.slice(0, 12));
+}
+
+function renderGdriveVaultTelemetry(vault) {
+  if (!vault) return;
+  const modeLabel = vault.live_drive_api_connected
+    ? '☁️ Google Drive API v3 (Live)'
+    : '📂 Drive Vault Mirror (Ready)';
+  setText('vaultStorageMode', modeLabel);
+  setText('vaultActiveDir', vault.local_mount_path || 'data/gdrive_vault');
+  setText(
+    'vaultDbStatus',
+    vault.db_last_backed_up_at ? `✅ Backed Up (${vault.db_backup_size_kb || 0} KB)` : '⏳ Pending Sync'
+  );
+  setText(
+    'vaultDbLastSync',
+    vault.db_last_backed_up_at ? `Last: ${vault.db_last_backed_up_at.slice(0, 19).replace('T', ' ')}` : 'Click Sync to Snapshot DB'
+  );
+  setText('vaultTotalFiles', vault.total_archived_files || 0);
+
+  const files = vault.files || [];
+  const countCat = prefix => files.filter(f => (f.category || '').startsWith(prefix)).length;
+  setText(
+    'vaultByCategory',
+    `DB: ${countCat('database')} • Remixed: ${countCat('processed')} • AI Studio: ${countCat('generated')} • Assets: ${countCat('assets')}`
+  );
+  setText('vaultSizeMb', `${vault.total_archived_mb || 0} MB`);
+  setText('vaultLocalCacheMb', `${vault.local_cache_mb || 0} MB`);
+
+  setText('vaultRecentCount', files.length);
+  const listEl = document.getElementById('vaultFilesList');
+  if (listEl) {
+    if (!files.length) {
+      listEl.innerHTML = '<p class="muted">No files archived yet. Click "☁️ Sync All Data & Media to Drive" above.</p>';
+    } else {
+      listEl.innerHTML = files.slice(0, 20).map(f => `
+        <div class="source-row">
+          <div>
+            <strong>${escapeHtml(f.filename)}</strong>
+            <span class="badge badge-blue" style="margin-left:0.35rem; font-size:0.65rem;">${escapeHtml(f.category)}</span>
+            <div class="muted" style="font-size:0.73rem;">
+              ${f.size_kb || 0} KB • Mode: <code>${escapeHtml(f.storage_mode || 'vault')}</code> • Synced: ${escapeHtml((f.synced_at || '').slice(0, 19).replace('T', ' '))}
+            </div>
+          </div>
+          ${f.web_view_link && f.web_view_link.startsWith('http') ? `<a href="${escapeHtml(f.web_view_link)}" target="_blank" class="btn btn-secondary btn-sm">Open in Drive ↗</a>` : `<span class="badge badge-green">✓ Synced</span>`}
+        </div>
+      `).join('');
+    }
+  }
 }
 
 function renderOverviewLogs(logs) {
@@ -1112,6 +1161,18 @@ async function loadSettings() {
   document.getElementById('setTiktokToken').value = s.tiktok_access_token || '';
   document.getElementById('setWebhookUrl').value = s.omnichannel_webhook_url || '';
   document.getElementById('setChannelPersona').value = s.channel_persona || '';
+  if (document.getElementById('setGdriveEnabled')) {
+    document.getElementById('setGdriveEnabled').value = String(Boolean(s.gdrive_storage_enabled ?? true));
+  }
+  if (document.getElementById('setAutoCleanupLocal')) {
+    document.getElementById('setAutoCleanupLocal').value = String(Boolean(s.auto_cleanup_local_after_publish ?? false));
+  }
+  if (document.getElementById('setGdriveVaultFolderId')) {
+    document.getElementById('setGdriveVaultFolderId').value = s.gdrive_vault_folder_id || '';
+  }
+  if (document.getElementById('setGdriveLocalMount')) {
+    document.getElementById('setGdriveLocalMount').value = s.gdrive_local_mount_path || '';
+  }
 }
 
 async function saveSettings(e) {
@@ -1142,6 +1203,10 @@ async function saveSettings(e) {
     tiktok_access_token: document.getElementById('setTiktokToken').value.trim(),
     omnichannel_webhook_url: document.getElementById('setWebhookUrl').value.trim(),
     channel_persona: document.getElementById('setChannelPersona').value.trim(),
+    gdrive_storage_enabled: document.getElementById('setGdriveEnabled')?.value === 'true',
+    auto_cleanup_local_after_publish: document.getElementById('setAutoCleanupLocal')?.value === 'true',
+    gdrive_vault_folder_id: (document.getElementById('setGdriveVaultFolderId')?.value || '').trim(),
+    gdrive_local_mount_path: (document.getElementById('setGdriveLocalMount')?.value || '').trim(),
   };
   await apiCall('/api/settings', { method: 'PUT', body: JSON.stringify(payload) });
   await refreshAll();
@@ -1156,6 +1221,61 @@ async function authorizeYouTubeOAuth() {
     showToast('✅ YouTube OAuth 2.0 connected!');
   } catch (err) {
     showToast(`OAuth Notice: ${err.message}`);
+  }
+}
+
+async function authorizeGoogleDriveOAuth() {
+  try {
+    showToast('☁️ Launching Google Drive API v3 OAuth 2.0 flow...');
+    const res = await apiCall('/api/gdrive-vault/authorize', { method: 'POST' });
+    await refreshAll();
+    showToast(`✅ Google Drive Vault connected (${res.mode})!`);
+  } catch (err) {
+    showToast(`Drive Auth Notice: ${err.message}`);
+  }
+}
+
+async function syncGoogleDriveVaultNow() {
+  showToast('☁️ Syncing SQLite DB + AI Studio + Remixed Videos + Assets to Google Drive Vault...');
+  try {
+    const res = await apiCall('/api/gdrive-vault/sync', { method: 'POST' });
+    await refreshAll();
+    showToast(`✅ Synced ${res.synced_count || 0} files (${res.status?.total_archived_mb || 0} MB) + SQLite DB to Google Drive Vault!`);
+  } catch (err) {
+    showToast(`Vault Sync Error: ${err.message}`);
+  }
+}
+
+async function backupDatabaseToDriveNow() {
+  showToast('💾 Creating atomic online SQLite backup to Google Drive Vault...');
+  try {
+    const res = await apiCall('/api/gdrive-vault/backup-db', { method: 'POST' });
+    await refreshAll();
+    showToast(`✅ SQLite DB backed up (${res.backup?.size_kb || 0} KB)!`);
+  } catch (err) {
+    showToast(`DB Backup Error: ${err.message}`);
+  }
+}
+
+async function restoreDatabaseFromDriveNow() {
+  showToast('📥 Restoring SQLite Database from Google Drive Vault...');
+  try {
+    const res = await apiCall('/api/gdrive-vault/restore-db', { method: 'POST' });
+    await refreshAll();
+    showToast(`✅ Restored SQLite DB (${res.restore?.size_kb || 0} KB) from Google Drive Vault!`);
+  } catch (err) {
+    showToast(`Restore Notice: ${err.message}`);
+  }
+}
+
+async function cleanupLocalPublishedCacheNow() {
+  showToast('🧹 Archiving published videos to Drive Vault and freeing local disk cache...');
+  try {
+    const res = await apiCall('/api/gdrive-vault/cleanup-local', { method: 'POST' });
+    await refreshAll();
+    showToast(`✅ Cleaned ${res.cleanup?.removed_files_count || 0} local files (${res.cleanup?.freed_mb || 0} MB freed; SHA-256 retained)!`);
+  } catch (err) {
+    showToast(`Cleanup Error: ${err.message}`);
   }
 }
 

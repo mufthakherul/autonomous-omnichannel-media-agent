@@ -216,6 +216,23 @@ def init_db() -> None:
         """
     )
 
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS gdrive_vault_files (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            filename TEXT NOT NULL,
+            category TEXT NOT NULL,
+            local_path TEXT DEFAULT '',
+            gdrive_file_id TEXT DEFAULT '',
+            web_view_link TEXT DEFAULT '',
+            size_kb REAL DEFAULT 0.0,
+            storage_mode TEXT DEFAULT 'local_vault_mirror',
+            synced_at TEXT NOT NULL,
+            UNIQUE(category, filename)
+        )
+        """
+    )
+
     now = utc_now_iso()
 
     for key, val in DEFAULT_SETTINGS.items():

@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.config import BASE_DIR, GENERATED_DIR, INCOMING_DIR, THUMBNAILS_DIR
+from app.config import BASE_DIR, GDRIVE_VAULT_DIR, GENERATED_DIR, INCOMING_DIR, THUMBNAILS_DIR
 from app.database import (
     get_connection,
     get_settings,
@@ -52,6 +52,15 @@ from app.services.content_generator import (
     publish_image_post_omnichannel,
 )
 from app.services.dedup_guard import get_dedup_stats
+from app.services.gdrive_storage import (
+    backup_database_to_gdrive,
+    cleanup_published_local_media,
+    get_active_vault_root_dir,
+    get_drive_api_client,
+    get_gdrive_vault_status,
+    restore_database_from_gdrive,
+    sync_all_data_and_resources_to_gdrive,
+)
 from app.services.inspector import inspect_video
 from app.services.key_pool import (
     add_api_keys_bulk,
@@ -104,6 +113,7 @@ app.add_middleware(
 
 app.mount("/thumbnails", StaticFiles(directory=str(THUMBNAILS_DIR)), name="thumbnails")
 app.mount("/generated", StaticFiles(directory=str(GENERATED_DIR)), name="generated")
+app.mount("/gdrive-vault", StaticFiles(directory=str(GDRIVE_VAULT_DIR)), name="gdrive_vault")
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 
@@ -121,6 +131,7 @@ async def get_dashboard_overview():
         k for k in api_keys_list if k.get("provider") == "gemini" and k.get("active") and k.get("status") == "healthy"
     ]
     dedup_stats = get_dedup_stats()
+    gdrive_vault = get_gdrive_vault_status()
 
     counts = {
         "total_videos": len(videos_all),
@@ -149,6 +160,7 @@ async def get_dashboard_overview():
         ).fetchone()["c"],
         "sources_total": conn.execute("SELECT COUNT(*) as c FROM sources WHERE active = 1").fetchone()["c"],
         "duplicates_blocked": dedup_stats.get("duplicates_blocked_count", 0),
+        "gdrive_vault_files": gdrive_vault.get("total_archived_files", 0),
     }
 
     logs = [
@@ -168,6 +180,7 @@ async def get_dashboard_overview():
     return {
         "counts": counts,
         "dedup_stats": dedup_stats,
+        "gdrive_vault": gdrive_vault,
         "agent": {
             "is_running_cycle": agent_worker.is_running_cycle,
             "last_cycle_at": agent_worker.last_cycle_at,
@@ -519,6 +532,9 @@ async def stream_video_endpoint(video_id: int, variant: str = "best"):
         raise HTTPException(status_code=404, detail="Video not found")
     rem_path = video.get("remediated_path")
     orig_path = video.get("local_path")
+    vault_root = get_active_vault_root_dir()
+
+    target: Optional[Path] = None
     if variant == "original" and orig_path and Path(orig_path).exists():
         target = Path(orig_path)
     elif rem_path and Path(rem_path).exists():
@@ -526,7 +542,21 @@ async def stream_video_endpoint(video_id: int, variant: str = "best"):
     elif orig_path and Path(orig_path).exists():
         target = Path(orig_path)
     else:
-        raise HTTPException(status_code=404, detail="Video file not found on disk")
+        # Check Google Drive Vault fallback if local cache was cleaned up after publishing
+        for candidate_path in (rem_path, orig_path):
+            if not candidate_path:
+                continue
+            fname = Path(candidate_path).name
+            for sub in ("processed", "generated", "incoming_archive"):
+                vault_candidate = vault_root / sub / fname
+                if vault_candidate.exists():
+                    target = vault_candidate
+                    break
+            if target:
+                break
+
+    if not target or not target.exists():
+        raise HTTPException(status_code=404, detail="Video file not found on disk or Google Drive Vault")
     return FileResponse(str(target), media_type="video/mp4", filename=target.name)
 
 
@@ -636,3 +666,51 @@ async def authorize_youtube_oauth():
     except Exception as exc:
         update_settings({"youtube_simulation_mode": True})
         raise HTTPException(status_code=400, detail=str(exc))
+
+
+# --- Google Drive 2TB Cloud Storage Vault Endpoints ---
+@app.get("/api/gdrive-vault/status")
+async def get_gdrive_vault_status_endpoint():
+    return await asyncio.to_thread(get_gdrive_vault_status)
+
+
+@app.post("/api/gdrive-vault/sync")
+async def sync_gdrive_vault_endpoint():
+    result = await asyncio.to_thread(sync_all_data_and_resources_to_gdrive)
+    return result
+
+
+@app.post("/api/gdrive-vault/backup-db")
+async def backup_db_to_gdrive_endpoint():
+    result = await asyncio.to_thread(backup_database_to_gdrive)
+    return {"backup": result, "vault": await asyncio.to_thread(get_gdrive_vault_status)}
+
+
+@app.post("/api/gdrive-vault/restore-db")
+async def restore_db_from_gdrive_endpoint():
+    try:
+        result = await asyncio.to_thread(restore_database_from_gdrive)
+        return {"restore": result, "vault": await asyncio.to_thread(get_gdrive_vault_status)}
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@app.post("/api/gdrive-vault/cleanup-local")
+async def cleanup_local_published_cache_endpoint():
+    result = await asyncio.to_thread(cleanup_published_local_media)
+    return {"cleanup": result, "vault": await asyncio.to_thread(get_gdrive_vault_status)}
+
+
+@app.post("/api/gdrive-vault/authorize")
+async def authorize_google_drive_oauth():
+    service = await asyncio.to_thread(get_drive_api_client, True)
+    if not service:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Could not authorize Google Drive API v3. Place client_secrets.json or service_account.json "
+                "in your project root, or set a Local Google Drive Desktop Mount Path (e.g., G:\\My Drive\\OmnichannelAgentVault)."
+            ),
+        )
+    return {"authorized": True, "mode": "drive_api_v3", "vault": await asyncio.to_thread(get_gdrive_vault_status)}
+

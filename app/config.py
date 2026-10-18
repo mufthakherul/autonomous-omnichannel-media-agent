@@ -14,6 +14,7 @@ SFX_DIR = ASSETS_DIR / "sfx"
 OVERLAYS_DIR = ASSETS_DIR / "overlays"
 BACKGROUNDS_DIR = ASSETS_DIR / "backgrounds"
 GENERATED_DIR = DATA_DIR / "generated"
+GDRIVE_VAULT_DIR = DATA_DIR / "gdrive_vault"
 DB_PATH = DATA_DIR / "agent.db"
 
 for directory in (
@@ -26,6 +27,7 @@ for directory in (
     OVERLAYS_DIR,
     BACKGROUNDS_DIR,
     GENERATED_DIR,
+    GDRIVE_VAULT_DIR,
 ):
     directory.mkdir(parents=True, exist_ok=True)
 
@@ -43,6 +45,10 @@ DEFAULT_SETTINGS = {
     "youtube_client_secrets_file": os.getenv("YOUTUBE_CLIENT_SECRETS_FILE", str(BASE_DIR / "client_secrets.json")),
     "youtube_token_file": os.getenv("YOUTUBE_TOKEN_FILE", str(DATA_DIR / "youtube_token.json")),
     "youtube_simulation_mode": os.getenv("YOUTUBE_SIMULATION_MODE", "true").lower() == "true",
+    "gdrive_storage_enabled": os.getenv("GDRIVE_STORAGE_ENABLED", "true").lower() == "true",
+    "gdrive_vault_folder_id": os.getenv("GDRIVE_VAULT_FOLDER_ID", ""),
+    "gdrive_local_mount_path": os.getenv("GDRIVE_LOCAL_MOUNT_PATH", ""),
+    "auto_cleanup_local_after_publish": os.getenv("AUTO_CLEANUP_LOCAL_AFTER_PUBLISH", "false").lower() == "true",
     "pexels_api_key": os.getenv("PEXELS_API_KEY", ""),
     "pixabay_api_key": os.getenv("PIXABAY_API_KEY", ""),
     "telegram_bot_token": os.getenv("TELEGRAM_BOT_TOKEN", ""),

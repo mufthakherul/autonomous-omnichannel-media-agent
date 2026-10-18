@@ -11,6 +11,7 @@ from app.services.content_generator import (
     generate_ai_video_from_topic,
 )
 from app.services.dedup_guard import is_news_or_topic_already_generated
+from app.services.gdrive_storage import sync_all_data_and_resources_to_gdrive
 from app.services.inspector import inspect_video
 from app.services.media_processor import auto_remediate_video, extract_thumbnail
 from app.services.parallel_engine import execute_jobs_in_parallel
@@ -288,6 +289,13 @@ class AutonomousAgentWorker:
                     summary["published_or_scheduled"] += 1
                 if "triaged_count" in out:
                     summary["comments_triaged"] += out["triaged_count"]
+
+            if settings.get("gdrive_storage_enabled", True):
+                try:
+                    vault_res = sync_all_data_and_resources_to_gdrive()
+                    summary["gdrive_vault_synced"] = vault_res.get("synced_count", 0)
+                except Exception as vault_exc:
+                    log_activity("GDRIVE_VAULT", f"Auto-backup note: {vault_exc}", level="WARN")
 
             self.last_cycle_at = utc_now_iso()
             self.cycle_count += 1

@@ -20,6 +20,10 @@ htmlcov/
 *.key
 client_secrets.json
 youtube_token.json
+service_account.json
+drive_token.json
+data/drive_token.json
+data/service_account.json
 
 # Local Runtime Data & Databases
 data/*.db
@@ -36,6 +40,8 @@ data/thumbnails/*
 !data/thumbnails/.gitkeep
 data/assets/*/*
 !data/assets/**/.gitkeep
+data/gdrive_vault/*
+!data/gdrive_vault/.gitkeep
 
 # IDE & OS
 .vscode/

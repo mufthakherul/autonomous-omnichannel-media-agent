@@ -415,8 +415,59 @@
         </div>
       </section>
 
-      <!-- TAB 4: MOTHER FOLDERS & VIDEO SOURCES -->
+      <!-- TAB 4: MOTHER FOLDERS & GOOGLE DRIVE 2TB VAULT -->
       <section id="sourcesTab" class="tab-panel">
+        <!-- Google Drive 2TB Cloud Storage Vault Banner & Controls -->
+        <div class="panel-card" style="margin-bottom: 1.25rem; border-color: rgba(59, 130, 246, 0.35);">
+          <div class="panel-header-inline">
+            <div>
+              <h3>☁️ Google One Pro (2 TB) Drive Storage Vault — Database & Media Sync</h3>
+              <p class="muted" style="font-size:0.78rem;">Automatically backs up your entire SQLite database (<code>agent.db</code> + 5-Layer Dedup Registry), AI-generated videos/images, remixed videos, and collected SFX/overlays to your 2 TB Google Drive.</p>
+            </div>
+            <div style="display:flex; gap:0.45rem; flex-wrap:wrap;">
+              <button class="btn btn-primary btn-sm" onclick="syncGoogleDriveVaultNow()">☁️ Sync All Data & Media to Drive</button>
+              <button class="btn btn-secondary btn-sm" onclick="backupDatabaseToDriveNow()">💾 Backup DB</button>
+              <button class="btn btn-secondary btn-sm" onclick="restoreDatabaseFromDriveNow()">📥 Restore DB</button>
+              <button class="btn btn-secondary btn-sm" onclick="cleanupLocalPublishedCacheNow()">🧹 Free Local Disk Cache</button>
+            </div>
+          </div>
+
+          <div class="metrics-grid" style="margin-top:0.65rem; margin-bottom:0.85rem;">
+            <div class="metric-card highlight-blue">
+              <span class="metric-label">Vault Storage Mode</span>
+              <strong id="vaultStorageMode" class="metric-value" style="font-size:1.05rem;">Active Mirror</strong>
+              <span id="vaultActiveDir" class="metric-sub">data/gdrive_vault</span>
+            </div>
+            <div class="metric-card highlight-green">
+              <span class="metric-label">SQLite DB Cloud Backup</span>
+              <strong id="vaultDbStatus" class="metric-value" style="font-size:1.05rem;">Ready</strong>
+              <span id="vaultDbLastSync" class="metric-sub">Atomic Online Snapshot</span>
+            </div>
+            <div class="metric-card highlight-cyan">
+              <span class="metric-label">Archived Vault Files</span>
+              <strong id="vaultTotalFiles" class="metric-value">0</strong>
+              <span id="vaultByCategory" class="metric-sub">DB • Videos • AI Studio • Assets</span>
+            </div>
+            <div class="metric-card highlight-purple">
+              <span class="metric-label">Drive Vault Usage</span>
+              <strong id="vaultSizeMb" class="metric-value">0 MB</strong>
+              <span class="metric-sub">of 2,048,000 MB (2 TB Google One Pro)</span>
+            </div>
+            <div class="metric-card highlight-amber">
+              <span class="metric-label">Local Working Cache</span>
+              <strong id="vaultLocalCacheMb" class="metric-value">0 MB</strong>
+              <span class="metric-sub">Can be freed after publishing</span>
+            </div>
+          </div>
+
+          <details style="margin-top:0.35rem;">
+            <summary style="cursor:pointer; font-size:0.8rem; font-weight:600; color:var(--accent-hover);">
+              📂 View Recently Synced Google Drive Vault Files (<span id="vaultRecentCount">0</span>)
+            </summary>
+            <div id="vaultFilesList" class="sources-list" style="margin-top:0.65rem; max-height:220px;"></div>
+          </details>
+        </div>
+
         <div class="split-layout">
           <div class="panel-card">
             <h3>📡 Connect Mother Folders & Video Sources</h3>
@@ -757,10 +808,43 @@
             </div>
           </div>
 
+          <!-- Section 5: Google Drive 2TB Cloud Storage Vault & Auto-Cleanup -->
+          <div class="settings-section-card">
+            <h4>☁️ 5. Google One Pro (2 TB) Drive Storage Vault & Zero-Disk Auto-Cleanup</h4>
+            <p class="muted" style="font-size:0.78rem;">Sync your SQLite database (`agent.db` + 5-Layer Dedup Registry), AI-generated media, remixed videos, and SFX/assets to your 2 TB Google Drive via Drive API v3 or Google Drive for Desktop mount.</p>
+            <div class="settings-grid">
+              <div class="form-group">
+                <label>Enable Automatic Google Drive Vault Sync After Every Cycle</label>
+                <select id="setGdriveEnabled">
+                  <option value="true">Enabled — Auto-backup SQLite DB & archive media to Google Drive</option>
+                  <option value="false">Disabled — Manual sync only</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Auto-Clean Local Published Video Cache After Archiving to Drive</label>
+                <select id="setAutoCleanupLocal">
+                  <option value="false">Keep local `.mp4` copies on disk</option>
+                  <option value="true">Enabled — Delete local `.mp4` after publishing & Drive Vault archive (Saves 100% local disk while keeping SHA-256 lock)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Google Drive Vault Folder URL or ID (Optional — For Cloud Drive API v3)</label>
+                <input type="text" id="setGdriveVaultFolderId" placeholder="e.g., https://drive.google.com/drive/folders/1abc... or Folder ID" />
+              </div>
+              <div class="form-group">
+                <label>Google Drive Desktop Mount Path (Optional — e.g., <code>G:\My Drive\OmnichannelAgentVault</code>)</label>
+                <input type="text" id="setGdriveLocalMount" placeholder="Leave blank for default data/gdrive_vault or enter G:\My Drive\..." />
+              </div>
+            </div>
+          </div>
+
           <div class="form-actions">
             <button type="submit" class="btn btn-primary">💾 Save All Configuration</button>
             <button type="button" class="btn btn-secondary" onclick="authorizeYouTubeOAuth()">
               🔑 Authorize Live YouTube OAuth (client_secrets.json)
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="authorizeGoogleDriveOAuth()">
+              ☁️ Authorize Google Drive API v3 OAuth
             </button>
           </div>
         </form>
